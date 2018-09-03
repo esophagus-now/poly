@@ -6,6 +6,10 @@
 #include <stdexcept>
 #include <sstream>
 
+//A lot of this stuff is coded in the easiest way possible. In reality,
+//the implementation has a lot of unnecessary object copies. I think I
+//know how to optimize this code, but it would become a lot messier...
+
 template <typename T>
 class poly {
 	std::vector<T> c; //coeffs
@@ -19,7 +23,6 @@ class poly {
 	//Compiler should auto-generate the copy and move ctors, and the
 	//dtor. I think it should also handle the assignments and move-
 	//assignment operators too. How do I check?
-	
 	
 	///Arithmetic
 	poly operator+(const poly &other) const {
@@ -75,9 +78,21 @@ class poly {
 		return *this;
 	}
 	
-	poly operator-(const poly &other) const;
+	poly operator-() const {
+		poly ret(*this);
+		for (auto &a : ret.c) {
+			a = -a;
+		}
+		return ret;
+	}
 	
-	poly &operator-=(const poly &other);
+	poly operator-(const poly &other) const {
+		return *this + -other;
+	}
+	
+	poly &operator-=(const poly &other) {
+		return *this = *this + -other;
+	}
 	
 	poly operator*(const T &scalar) const {
 		poly ret(*this);
@@ -109,7 +124,8 @@ class poly {
 		int i = 0, j = 0;
 		for (auto u : c) {
 			for (auto v: other.c) {
-				ret.c[i+j++] += u*v;
+				ret.c[i+j] = ret.c[i+j] + u*v; //Don't want to force people to write operator+=
+				j++;
 			}
 			i++;
 			j = 0;
@@ -118,24 +134,106 @@ class poly {
 		return ret;
 	}
 	
-	poly &operator*=(const poly &other);
+	poly &operator*=(const poly &other) {
+		//a b c d
+		//A B C
+		
+		//Outer product table:
+		/* Aa Ab Ac Ad
+		 * Ba Bb Bc Bd
+		 * Ca Cb Cc Cd
+		 * */
+		std::vector<T> newc;
+		int len = c.size();
+		int otherlen = other.c.size();
+		//Hopefully type T has reasonable default constructors
+		newc.resize(len + otherlen - 1);
+		
+		int i = 0, j = 0;
+		for (auto u : c) {
+			for (auto v: other.c) {
+				newc[i+j] = newc[i+j] + u*v;
+				j++;
+			}
+			i++;
+			j = 0;
+		}
+		
+		c = std::move(newc);
+		return *this;
+	}
 	
 	//TODO: This doesn't check that shift is a reasonable quantity
-	poly operator<<(int shift) {
+	//(although I think vector will do something reasonable)
+	poly operator<<(int shift) const {
 		poly ret(*this);
 		ret.c.resize(c.size() + shift);
 		return ret;
 	}
 	
-	//"integer" divison
-	poly operator/(const poly &other) const;
+	poly &operator<<=(int shift) {
+		c.resize(c.size() + shift);
+		return *this;
+	}
 	
+	//"integer" divison
+	poly operator/(const poly &other) const {
+		poly ret;
+		int len = c.size();
+		int otherlen = other.c.size();
+		if (otherlen > len) return ret;
+		ret.c.reserve(len - otherlen + 1);
+		
+		//   a b c d e f g
+		// ÷       D E F G
+		
+		int offset = len - otherlen;
+		poly divd(*this); //dividend
+		poly divr = other << offset; //divisor
+		
+		auto leadCoeff = divr.c[0]; //TODO: check for divide by zero
+		
+		for(int i = 0; i <= offset; i++) {
+			T tmp = divd.c[i] / leadCoeff;
+			divd -= divr*tmp; //The op-assign operators really shouldn't be copying stuff... inefficient and bug-heavy
+			ret.c.push_back(tmp);
+			divr <<= -1;
+		}
+		
+		return ret;
+	}
+	
+	//TODO: implement this
 	poly &operator/=(const poly &other);
 	
-	poly operator%(const poly &other) const;
+	//TODO: is RVO still gonna happen?
+	poly operator%(const poly &other) const {
+		poly divd(*this);
+		int len = c.size();
+		int otherlen = other.c.size();
+		if (otherlen > len) return divd;
+		
+		//   a b c d e f g
+		// ÷       D E F G
+		
+		int offset = len - otherlen;
+		poly divr = other << offset; //divisor
+		
+		auto leadCoeff = divr.c[0]; //TODO: check for divide by zero
+		
+		for(int i = 0; i <= offset; i++) {
+			T tmp = divd.c[i] / leadCoeff;
+			divd -= divr*tmp; //The op-assign operators really shouldn't be copying stuff... inefficient and bug-heavy
+			divr <<= -1;
+		}
+		
+		divd.c = std::vector<T>(divd.c.begin() + offset + 1, divd.c.end());
+		
+		return divd;
+	}
 	
+	//TODO: implement this
 	poly &operator%=(const poly &other);
-	
 	
 	///Pretty-printing
 	operator std::string() const {
