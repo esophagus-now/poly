@@ -28,7 +28,7 @@ class GF {
 	//there is a risk of overflow?
 	GF operator+(const GF &other) const {
 		T newval = (val + other.val) % mod;
-		return GF(move(newval), mod);
+		return GF(std::move(newval), mod);
 	}
 	
 	GF &operator+=(const GF &other) {
@@ -38,7 +38,7 @@ class GF {
 	
 	GF operator+(const T &other) const {
 		T newval = (val + other) % mod;
-		return GF(move(newval), mod);
+		return GF(std::move(newval), mod);
 	}
 	
 	GF &operator+=(const T &other) {
