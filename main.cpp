@@ -3,10 +3,21 @@
 #include <sstream>
 #include <type_traits>
 #include "poly.hpp"
+#include "gf.hpp"
 
 using namespace std;
 
-int main() {	
+template <typename T>
+void f(T &&arg) {
+	TD<T> t1;
+	TD<decltype(arg)> t2;
+	arg++;
+}
+
+int main() {
+	int test = 19;
+	GF<int> global(3.2f, test);
+	cout << global*17 << endl;
 	vector<int> vi1 = {2,1,1};
 	vector<int> vi2 = {2,1,1,1,1};
 	
