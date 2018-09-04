@@ -4,50 +4,42 @@
 #include <type_traits>
 #include "poly.hpp"
 #include "gf.hpp"
+#include "printer.hpp"
 
 using namespace std;
 
-template <typename T>
-void f(T &&arg) {
-	TD<T> t1;
-	TD<decltype(arg)> t2;
-	arg++;
+poly<GF<unsigned> > gf2poly(string s) {
+	vector<GF<unsigned> > v;
+	
+	for (const auto &a: s) {
+		if (a == '0') {
+			v.emplace_back(0,2,0,1);
+		} else {
+			v.emplace_back(1,2,0,1);
+		}
+	}
+	
+	return poly<GF<unsigned> >(move(v));
 }
 
 int main() {
-	int test = 19;
-	GF<int> global(3.2f, test);
-	cout << global*17 << endl;
-	vector<int> vi1 = {2,1,1};
-	vector<int> vi2 = {2,1,1,1,1};
+	auto p1 = gf2poly("10010010");
+	auto p2 = gf2poly("01110111");
+	auto zero = gf2poly("0");
+	auto one = gf2poly("1");
+	auto mod = gf2poly("110000111");
+	auto thing1 = GF<poly<GF<unsigned> > >(p1, mod, zero, one);
+	auto thing2 = GF<poly<GF<unsigned> > >(p2, mod, zero, one);
+	cout << p1.compact("") << endl;
+	cout << p2.compact("") << endl;
+	cout << (p1+p2).compact("") << endl << endl;
+	cout << (p1*p2).compact("") << endl;
+	cout << ((p1*p2)%mod).compact("") << endl;
 	
-	poly<int> p1(vi1);
-	poly<int> p2(move(vi2));
+	auto g1 = GF<int>(3,19,0,1);
+	auto g2 = GF<int>(4,19,0,1);
+	cout << g2/g1 << endl;
 	
-	vector<poly<int> > vp1 = {p1, p2};
-	poly<poly<int> > ppi1(vp1);
-	
-	cout << ppi1 << endl;
-		
-	p1 = poly<int>(vector<int>{1,2,3,4});
-	p2 = poly<int>(vector<int>{10,-7,-18});
-	poly<int> p3 = poly<int>(vector<int>{38, 90, 74});
-	
-	vector<poly<int> > vp2 = {p1, p2, p3+=p1*p2};
-	
-	cout << p3 << "/" << p1 << " = " << p3/p1 << endl;
-	cout << "True answer should be " << p2 << endl;
-	cout << p3 << "%" << p1 << " = " << p3 % p1 << endl;
-	cout << "True answer should be {38,90,74}" << endl;
-	
-	poly<poly<int> > ppi2(vp2);
-	
-	cout << ppi2 << endl;
-	
-	cout << "-: " << ppi1 - ppi2 << endl;
-	cout << "*: " << ppi1 * ppi2 << endl;
-	cout << "smul(" << ppi1 << "," << p1 << "): " << ppi1*p1 << endl;
-	
-	cout << "Hello world" << endl;
+	cout << thing1.compact("") << endl;
 	return 0;
 }

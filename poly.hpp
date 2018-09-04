@@ -5,6 +5,7 @@
 #include <vector>
 #include <stdexcept>
 #include <sstream>
+#include "gf.hpp"
 
 //A lot of this stuff is coded in the easiest way possible. In reality,
 //the implementation has a lot of unnecessary object copies. I think I
@@ -18,7 +19,9 @@ class poly {
 	///Constructors, destructors, etc.
 	poly() {} //Need to include this even though it is empty
 	poly(const std::vector<T> &cin) : c(cin.begin(), cin.end()) {}
-	poly(std::vector<T> &&cin) : c(cin) {} //Should invoke vector's move constructor
+	
+	template <typename P> //Need perfect forwarding
+	poly(std::vector<T> &&cin) : c(std::forward(cin)) {} //Should invoke vector's move constructor
 	
 	//Compiler should auto-generate the copy and move ctors, and the
 	//dtor. I think it should also handle the assignments and move-
@@ -114,17 +117,21 @@ class poly {
 		 * Ba Bb Bc Bd
 		 * Ca Cb Cc Cd
 		 * */
-		 
 		poly ret;
 		int len = c.size();
 		int otherlen = other.c.size();
 		//Hopefully type T has reasonable default constructors
-		ret.c.resize(len + otherlen - 1);
+		//It didn't! I have to do this *0 trick to get it to work!
+		ret.c.resize(len + otherlen - 1, c[0]*0);
 		
 		int i = 0, j = 0;
 		for (auto u : c) {
 			for (auto v: other.c) {
-				ret.c[i+j] = ret.c[i+j] + u*v; //Don't want to force people to write operator+=
+				//NOTE: The order of the two operands to + below MATTERS
+				//I ran into an issue where the default constructor of the vector object
+				//wasn't 100% reasonable, and the operator+ on ret.c[i+j] was failing
+				//(but the operator+ on u*v succeeds)
+				ret.c[i+j] = u*v + ret.c[i+j]; //Don't want to force people to write operator+=
 				j++;
 			}
 			i++;
@@ -167,12 +174,13 @@ class poly {
 	//(although I think vector will do something reasonable)
 	poly operator<<(int shift) const {
 		poly ret(*this);
-		ret.c.resize(c.size() + shift);
+		//I overloaded operator*(int) to return an appropriate zero member
+		ret.c.resize(c.size() + shift, c[0]*0);
 		return ret;
 	}
 	
 	poly &operator<<=(int shift) {
-		c.resize(c.size() + shift);
+		c.resize(c.size() + shift, c[0]*0);
 		return *this;
 	}
 	
@@ -208,7 +216,7 @@ class poly {
 	
 	//TODO: is RVO still gonna happen?
 	poly operator%(const poly &other) const {
-		poly divd(*this);
+		poly divd(*this); //I think this is using move semantics...
 		int len = c.size();
 		int otherlen = other.c.size();
 		if (otherlen > len) return divd;
@@ -246,11 +254,20 @@ class poly {
 		s << "}";
 		return s.str();
 	}
+	
+	std::string compact(std::string delim) const {
+		std::stringstream s;
+		auto it = c.begin();
+		s << (*it).compact(delim);
+		++it;
+		for (; it != c.end(); ++it) s << delim << (*it).compact(delim);
+		return s.str();
+	}
 };
 
 template <typename T> //Deduced at compile-time
 std::ostream &operator<<(std::ostream &o, const poly<T> &p) {
-	o << std::string(p);
+	o << p.compact(" ");
 	return o;
 }
 
