@@ -12,10 +12,10 @@ template <typename T>
 class GF {
 	T val;
 	T mod;
-	T zero; //additive identity
-	T one; //multiplicative identity
 	
 	public:	
+	T zero; //additive identity
+	T one; //multiplicative identity
 	//It's a shame to copy these into evey element... maybe shared
 	//pointers would be better?
 	///Constructors, destructors, etc.
@@ -121,8 +121,20 @@ class GF {
 	}
 	
 	///Relational operators
-	bool operator!=(const GF &other) {
+	bool operator==(const GF &other) const {
+		return val == other.val;
+	}
+	
+	bool operator!=(const GF &other) const {
 		return val != other.val;
+	}
+	
+	bool operator==(const T&other) const {
+		return val == other;
+	}
+	
+	bool operator!=(const T&other) const {
+		return val != other;
 	}
 	
 	///Pretty-printing
@@ -141,7 +153,7 @@ class GF {
 
 template <typename T> //Deduced at compile-time
 std::ostream &operator<<(std::ostream &o, const GF<T> &out) {
-	o << std::string(out);
+	o << out.compact(" ");
 	return o;
 }
 

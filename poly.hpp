@@ -5,6 +5,7 @@
 #include <vector>
 #include <stdexcept>
 #include <sstream>
+#include <algorithm>
 #include "gf.hpp"
 
 //A lot of this stuff is coded in the easiest way possible. In reality,
@@ -243,6 +244,15 @@ class poly {
 	//TODO: implement this
 	poly &operator%=(const poly &other);
 	
+	///Relational operators
+	bool operator==(const poly &other) const {
+		return std::equal(c.begin(), c.end(), other.c.begin());
+	}
+	
+	bool operator!=(const poly &other) const {
+		return !std::equal(c.begin(), c.end(), other.c.begin());
+	}
+	
 	///Pretty-printing
 	operator std::string() const {
 		std::stringstream s;
@@ -258,16 +268,16 @@ class poly {
 	std::string compact(std::string delim) const {
 		std::stringstream s;
 		auto it = c.begin();
-		s << (*it).compact(delim);
+		s << *it;
 		++it;
-		for (; it != c.end(); ++it) s << delim << (*it).compact(delim);
+		for (; it != c.end(); ++it) s << delim << *it;
 		return s.str();
 	}
 };
 
 template <typename T> //Deduced at compile-time
 std::ostream &operator<<(std::ostream &o, const poly<T> &p) {
-	o << p.compact(" ");
+	o << p.compact("");
 	return o;
 }
 
