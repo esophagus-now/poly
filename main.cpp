@@ -76,5 +76,13 @@ int main() {
 	}
 	cout << endl;
 	
+	vector<char> vc({'a', 'b', 'c', 'd', 'e'});
+	do {
+		for (const auto &c : vc) {
+			cout << c;
+		}
+		cout << endl;
+	} while (next_permutation(vc.begin(), vc.end()));
+	
 	return 0;
 }
